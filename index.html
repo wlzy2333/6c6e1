@@ -82,8 +82,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
+const UI_VER='09c6a9491320';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"h91ZWYjAt/pnzOACTUkEeC10b2s=","nonce":"qkhq3kYPzIxCHfEY","ct":"wnTYh9yx1p+vhtFdiVa4yXiGZyoya7i1rsOO3g9lP6bpY5frQFVYjN0fPe/CqpMukAmAkqfLFd2VM0G9k5Qp6lPxBM/C6xHhdt3PJvq0AauZA6x1JuU3fn8Py2ykij5eJFA5GbjtDj/FsL5IwA=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"ZFqn8rU4aKbQtmq7Qj5XhS10b2s=","nonce":"lsUSBK5GKnA0d4UB","ct":"620IgwZzg93sfaFHd5YPDC9wxXNOeje9+3o16GNt+6Wm1jmtIPaENe+FXlUdjvnxXFi1pIsfIRUAHtPVP/f2FzNH8qoQD7F4WNMiL49VQw0oTYRcIGutn4MFp7t9fIndaNehWIQrrAgAMVoUeQ=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -311,7 +312,7 @@ async function cacheUI(res){
     const iv=crypto.getRandomValues(new Uint8Array(12));
     const data=enc(JSON.stringify({html:res.html,css:res.css,js:res.js}));
     const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await uiKey(ck),data);
-    localStorage.setItem('s1u',JSON.stringify({iv:b64(iv),ct:b64(new Uint8Array(ct))}));
+    localStorage.setItem('s1u',JSON.stringify({v:UI_VER,iv:b64(iv),ct:b64(new Uint8Array(ct))}));
   }catch(e){}
 }
 async function restoreUI(){
@@ -319,6 +320,8 @@ async function restoreUI(){
   if(!ck||!cache)return false;
   try{
     const o=JSON.parse(cache);
+    // 版本不符 → 丢弃旧缓存，回退到登录页重新拉取最新界面
+    if(o.v!==UI_VER){ localStorage.removeItem('s1u'); return false; }
     const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},await uiKey(ck),unb64(o.ct));
     return JSON.parse(dec(pt));
   }catch(e){ return false; }
