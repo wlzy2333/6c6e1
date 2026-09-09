@@ -1,6 +1,1 @@
-{
-  "ok": true,
-  "status": "pending",
-  "left": 583,
-  "msg": "等待确认…（583 秒内有效）"
-}
+{"v": 1, "alg": "ECIES-P256-AESGCM", "eph": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVoMQDmqWIowEIFGDDIy1WN69OOjhAfWS7XpuJp/CzTn7qxXtvgscgOfOy5NqvPOE2Q3aCS9/7KyDIPFpGsZdQA==", "nonce": "SGyWluEC6FFclfkT", "ct": "AylejYMYStYdR3HkLa7NoiVdaWBkluoDLFTOICQ0UxiO4zsGYahNp/2t/EiKqrky/1k5AhVHyWkpmlINsmEXVqEJ71qCra5KVQ==", "time": "2026-09-10 00:41:47"}
