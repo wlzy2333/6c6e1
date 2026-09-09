@@ -83,7 +83,7 @@ async function obfAsset(name){
 const DIR_UP='uploads';
 
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'main'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"9wMil8bGkQXqqqZD0JkhxC10b2s=","nonce":"f3tHfUSfX975td0s","ct":"t3CsHJzk+ohXmUtqaGVnTUeuOqtkE+lHtPksiExaxy3FTEkKIVJKC+JcmkEQw1yTmF59LM9gAHqVwpLnGc8dfjWp9UX8VmWYlHEftLDnDwHNgcBgerX9Lj/G6/rZ0HrE6Xx4eHKD7HVAhJXXZQ=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"L+VW7wmFjW0ypZBmT9nTaC10b2s=","nonce":"tXEEi2QlKVLDOzbk","ct":"OuU1r+xBtjqz2uGZXlsmDfH6T/EP28Kppe3tj10S6iO65uiXNmHCemMQ4ewcipaAg0Mltir6dV9zKHVuOenFcP944vsrAed6THXTWUTWMoGnPd5hexjAaph32Av7yqmdojIicZZ4L0ByTMK03g=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -258,21 +258,25 @@ async function loadUIPack(password,account){
     const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(pack.nonce)},aes,unb64(pack.ct));
     // 明文是 {"html":...,"bundle":...} 的 JSON，必须解析后取字段
     const obj=JSON.parse(dec(pt));
-    return {html:obj.html, iters:pack.iters, bundle:obj.bundle||null};
+    return {html:obj.html, css:obj.css||'', js:obj.js||'',
+            iters:pack.iters, bundle:obj.bundle||null};
   }catch(e){ return {err:'账户或密码错误'}; }
 }
 
-function injectUI(html){
+function injectUI(html,css,js){
   const host=$('#uiHost');
-  // 直接从原始字符串分离标记与脚本源码，避免 DOM 往返导致内容被解析器改写
-  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
-  const markup=html.replace(/<script>[\s\S]*?<\/script>/g,'');
-  host.innerHTML=markup;
-  scripts.forEach(src=>{
-    const s=document.createElement('script');
-    s.textContent=src;
-    document.body.appendChild(s);
-  });
+  // 样式来自包内 css 字段；脚本来自 js 字段，不经 DOM 往返避免被解析器改写
+  if(css){
+    const st=document.createElement('style');
+    st.textContent=css;
+    document.head.appendChild(st);
+  }
+  host.innerHTML=(html||'').replace(/<script>[\s\S]*?<\/script>/g,'');
+  if(js){
+    const sc=document.createElement('script');
+    sc.textContent=js;
+    document.body.appendChild(sc);
+  }
 }
 
 /* ---- 配对 ---- */
@@ -367,7 +371,7 @@ $('#btnLogin').onclick=async()=>{
   await ensureKeys(res.bundle);
   await ensurePubUploaded();
   DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
-  injectUI(res.html);
+  injectUI(res.html, res.css, res.js);
   COOKIE=localStorage.getItem('s1c')||'';
   PENDPW=pw; PENDACC=acc;
   await requestPair();
