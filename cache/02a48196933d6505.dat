@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "status": "active",
+  "cookie_env": {
+    "v": 1,
+    "alg": "ECIES-P256-AESGCM",
+    "eph": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpzPqvhJ2smeH0bKMoyaGkf7dxunZoGqNiI+J1d52RkX/K8Y681W3tZ5lOg8PydsLXHTm8OXD8ZA+G6vM6V3p0A==",
+    "nonce": "yfLbTTGrvV891ec0",
+    "ct": "gvqfY+qW/X0ThAJD53SitrUJzymZ1CLT1V4AS+8dDCocD32h+MYXdbAxNWjRS0PlZTEy/P6/f0BxilQOnPS6dPPe0DjcejbnvA=="
+  },
+  "msg": "设备已激活，Cookie 已下发",
+  "expire": 1796756048
+}
