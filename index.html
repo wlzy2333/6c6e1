@@ -83,9 +83,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='1240ecc26139';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='fc02afe31a91';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"1Cus567mv4C5dy1ibrcfEC10b2s=","nonce":"u2LFOsdmEsyjrVeR","ct":"upVvpc7CmvPyjRqfeAK4HbGQbzHCKnmMduZVeca2NGoVe7iuQCXWcxa5iNdfxU7qWSYB7EGqcpMCuYSi/wu3efwIq4gUf6Nt3S3I1OJk6oL68xCZvb+dpbhF/aLYg9u5QsuyUCj/BZK0cDfjrg=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"9NMul5A1Qy1Vq0YcwfI+PC10b2s=","nonce":"evz6k+AuQYSWt++M","ct":"+PucNa8xAMYoEUfhnqn39fRnaKZx6hcekyxEPFgVuMeN2+E/7ZrQPQHE3hkMA0bZRNFjiUE2I1znXs8CH6aL6TTyVtPOkuyvUh73nOQB41md9Ntjxejq/mbR8OTbBGnxMLU1rJ+F6V68ysFV9A=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -121,12 +121,20 @@ function rndMsg(){
 
 async function writeFile(p,content,msg,sha){
   const AUTH=rndAuth();
-  const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+p,{method:'PUT',
-    headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
-    body:JSON.stringify({message:msg,content:b64(enc(content)),branch:cfg.branch,
-      author:AUTH,committer:AUTH,...(sha?{sha}:{})})});
-  if(!r.ok)throw new Error('写入失败 '+r.status);
-  return r.json();
+  // 并发写入会 409：重取 sha 后重试，避免"指令丢了却毫无提示"
+  for(let attempt=0;attempt<3;attempt++){
+    const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+p,{method:'PUT',
+      headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,content:b64(enc(content)),branch:cfg.branch,
+        author:AUTH,committer:AUTH,...(sha?{sha}:{})})});
+    if(r.status===409){
+      const cur=await readFile(p); sha=(cur&&cur.sha)||null;
+      await new Promise(x=>setTimeout(x,400)); continue;
+    }
+    if(!r.ok)throw new Error('写入失败 '+r.status);
+    return r.json();
+  }
+  throw new Error('写入冲突，请重试');
 }
 
 /* ---- 加密基元 ---- */
