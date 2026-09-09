@@ -1,8 +1,1 @@
-{
-  "ok": true,
-  "status": "pending",
-  "fp": "ba8e769517204f4c437762e81a28e9c5",
-  "code": "CD48EBBA9F13",
-  "account": "wlzy2333",
-  "msg": "配对请求已受理，请把标识码发给元宝完成激活"
-}
+{"v":1,"alg":"ECIES-P256-AESGCM","eph":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq4OTcKEoLOp9l5Vu9zI8qO+DJhIK8FUnpaCtPHYCqZfLn+ItY8JGItDikFX9ALeUlg1IBhSivEzgHy1TaoKJuQ==","nonce":"GZSykbh7fqOQTK5e","ct":"44ZJJF5OmKgwRu++Xtp7ux7+oagHvbrEePM3aeAuBV2gWhUESYjHDm5cUn3/QAKiMiEAkEeIu70pWtgmMz2QVfG9WbYADDEdww=="}
