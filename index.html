@@ -44,6 +44,7 @@ font-size:12px;color:var(--sub);margin:10px 0}
   <label>密码</label><input id="inPass" type="password" placeholder="密码" autocomplete="current-password">
   <div class="row" style="margin-top:12px"><button id="btnLogin" style="flex:1">登 录</button></div>
   <div id="loginMsg" class="fp" style="margin-top:10px;color:var(--danger);min-height:16px"></div>
+  <div style="margin-top:8px;font-size:11px;color:var(--sub);text-align:center">版本 <span id="ver">-</span></div>
 </div>
 
 <div class="card hide" id="pairCard">
@@ -82,9 +83,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='c7a48d98128a';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='c872f56909eb';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"SnR4TlF4IVSvgDdVxhzNnS10b2s=","nonce":"zcmIFspwrjCWO7kD","ct":"msHv33Mu2nwfSPFwq8dCraeiShIDEXVenbHIetSVLfwZ7Cq2n3GJV1cP2UhCopzrdWxampzQFVZjl2I82jUdxhsLssKbUhnBJgRIovNQ49iY+lBw/oHoEvTq6rlLtyrncm4sEBVi23yNKwM90g=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"2wWZ3D1G+vo1i/pfHM61kC10b2s=","nonce":"jCL0ATEXlKWIjPNb","ct":"pd53EcIKc6m0jVQfHhPr2U8PCoivqBx4ZNV3i9MuiVyR592SsGQsos/dffncAGExOfMCvxSbr1ydDXgjOD/Sk8meudXD3WMGWN0OblhBBnhGVXZUFp1dBgUzv44TWRRMY62W/EVcXbzV/lNeMA=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -483,7 +484,7 @@ $('#btnLogin').onclick=async()=>{
   await ensurePubUploaded();
   DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
   injectUI(res.html, res.css, res.js);
-  await cacheUI(res);
+  try{ localStorage.setItem('s1n',acc); }catch(e){}   // 只记账户名，不记密码
   COOKIE=localStorage.getItem('s1c')||'';
   PENDPW=pw; PENDACC=acc;
   await requestPair();
@@ -495,30 +496,19 @@ $('#btnLogin').onclick=async()=>{
 
 (function boot(){
   $('#pairCard').classList.add('hide');
-  // 已有会话 → 静默恢复，无需重新输密码；服务端会复核 cookie，失效自动踢回
-  (async()=>{
-    const ui=await restoreUI();
-    if(!ui){ $('#loginCard').classList.remove('hide'); return; }
+  $('#loginCard').classList.remove('hide');
+  // 已授权设备：预填账户，只需输密码（密码永不落盘，界面每次用密码解密）
+  var ck=localStorage.getItem('s1c')||'';
+  if(ck){
     try{
-      const boxR=await readFile(await obfAsset('keys/box_public.json'));
-      if(boxR.content)boxPub=JSON.parse(boxR.content).box_pub;
+      var el=document.getElementById('inUser');
+      if(el)el.value=localStorage.getItem('s1n')||'';
+      var tip=document.getElementById('loginMsg');
+      if(tip){tip.style.color='var(--sub)';tip.textContent='本设备已授权，输入密码即可进入';}
     }catch(e){}
-    await ensureKeys(null);
-    DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
-    COOKIE=localStorage.getItem('s1c')||'';
-    // 界面缓存还在但 cookie/token 缺失 → 所有指令静默失败，必须重新登录补齐
-    if(!COOKIE||!cfg.token){
-      localStorage.removeItem('s1u');
-      $('#loginCard').classList.remove('hide');
-      log(!cfg.token?'访问凭据已丢失，请重新登录':'凭据已失效，请重新登录');
-      return;
-    }
-    injectUI(ui.html,ui.css,ui.js);
-    if(pollTimer)clearInterval(pollTimer);
-    pollTimer=setInterval(poll,3000);
-    poll();
-    log('已恢复上次会话');
-  })();
+  }
+  var v=document.getElementById('ver');
+  if(v)v.textContent='v'+UI_VER;
 })();
 </script>
 </body>
