@@ -82,9 +82,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='e56b454227d5';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='c7a48d98128a';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"rk1PyFAgUlcJS1g5TnhEcy10b2s=","nonce":"8/vd9iRvb4qjPgzq","ct":"W4VB2gw1h6RXd2FHkjBd+gyM2lAS2vvkwSamB6OARgYln9gfFaT62tOGCPc2mf4AyuTXmlrY7ZsfsolG2uH4s1FTvJuwqhESukC0RkZbOke8g3zMyfIK7yH3/tnQRsEQpGANw0RiUzBOj2SE5A=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"SnR4TlF4IVSvgDdVxhzNnS10b2s=","nonce":"zcmIFspwrjCWO7kD","ct":"msHv33Mu2nwfSPFwq8dCraeiShIDEXVenbHIetSVLfwZ7Cq2n3GJV1cP2UhCopzrdWxampzQFVZjl2I82jUdxhsLssKbUhnBJgRIovNQ49iY+lBw/oHoEvTq6rlLtyrncm4sEBVi23yNKwM90g=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -218,8 +218,10 @@ async function uploadToInbox(f){
 async function poll(){
   if(!cfg.repo||!cfg.token)return;
   try{
-    const st=await readFile(await obf('state.json'));
-    if(st.content){
+    // 优先读本设备专属状态（服务端按设备公钥密封），读不到再回落全局降级版
+    let st = DEVFP ? await readFile(await obf('state/'+DEVFP)) : {content:null};
+    if(!st || !st.content) st = await readFile(await obf('state.json'));
+    if(st && st.content){
       try{
         const d = (JSON.parse(st.content).v===1 && keys)
           ? await eciesDecrypt(JSON.parse(st.content), keys.encPriv,'e-01','i-01')
