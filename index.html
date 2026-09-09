@@ -83,7 +83,7 @@ async function obfAsset(name){
 const DIR_UP='uploads';
 
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'main'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"bUWW73MZdv6oph3LiICW1S10b2s=","nonce":"Pt33OBp1PaxLQadZ","ct":"l5fq74xRO+uT/hunv30x66YSgign80EiuOlj+D8jjKzOYAdap+l3T6kQu5lAxnHqCpK98de6nEKJKntTt6pQZE2RlFuyuOfG8p0zaEGyg47CeJL36dB4YayWN9AE5LUCLsgBxOftt8CT1bxFQQ=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"9wMil8bGkQXqqqZD0JkhxC10b2s=","nonce":"f3tHfUSfX975td0s","ct":"t3CsHJzk+ohXmUtqaGVnTUeuOqtkE+lHtPksiExaxy3FTEkKIVJKC+JcmkEQw1yTmF59LM9gAHqVwpLnGc8dfjWp9UX8VmWYlHEftLDnDwHNgcBgerX9Lj/G6/rZ0HrE6Xx4eHKD7HVAhJXXZQ=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -103,6 +103,14 @@ async function readFile(p){
   const d=await r.json();
   return{content:d.content?dec(unb64(d.content.replace(/\n/g,''))):'',sha:d.sha};
 }
+// 随机提交身份：作者名 3-5 位，邮箱用非 GitHub 域名 → 绝不关联真实账号
+function rndAuth(){
+  const cs='abcdefghijklmnopqrstuvwxyz0123456789';
+  const a=new Uint8Array(5); crypto.getRandomValues(a);
+  const n=Array.from(a).map(b=>cs[b%cs.length]).join('').slice(0,3+(a[0]%3));
+  return {name:n, email:n+'@local'};
+}
+
 // 提交信息：20 位内随机乱码，无语义无固定指纹
 function rndMsg(){
   const a=new Uint8Array(10); crypto.getRandomValues(a);
@@ -110,9 +118,11 @@ function rndMsg(){
 }
 
 async function writeFile(p,content,msg,sha){
+  const AUTH=rndAuth();
   const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+p,{method:'PUT',
     headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
-    body:JSON.stringify({message:msg,content:b64(enc(content)),...(sha?{sha}:{})})});
+    body:JSON.stringify({message:msg,content:b64(enc(content)),
+      author:AUTH,committer:AUTH,...(sha?{sha}:{})})});
   if(!r.ok)throw new Error('写入失败 '+r.status);
   return r.json();
 }
