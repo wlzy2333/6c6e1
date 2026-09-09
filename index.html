@@ -1,522 +1,466 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>登录</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>云盘</title>
 <style>
-:root{--bg:#0f1420;--card:#1a2234;--card2:#212b40;--line:#2b3648;--txt:#e6ecf7;
---sub:#93a1bb;--acc:#4f8cff;--acc2:#38d39f;--danger:#ff6b6b;--warn:#ffb648}
+:root{
+  --bg:#0d1117; --card:#161b22; --card2:#1c2330; --line:#2a3240;
+  --txt:#e6edf3; --sub:#8b949e; --acc:#4f8cff; --acc2:#3fb950; --danger:#f85149;
+}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#1c2740,#0f1420 60%);color:var(--txt);
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-min-height:100vh;padding:16px;font-size:14px}
-.wrap{max-width:1060px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-h1{font-size:20px;margin:0 0 4px}h1 span{color:var(--acc)}
-.sub{color:var(--sub);font-size:13px;margin-bottom:14px}
-label{display:block;font-size:12px;color:var(--sub);margin:10px 0 5px}
-input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
-border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  font-size:14px;line-height:1.55;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+}
+.wrap{width:100%;max-width:1060px}
+.card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:22px;
+}
+.mini{max-width:360px;margin:0 auto}
+h1{margin:0 0 4px;font-size:19px;font-weight:600;letter-spacing:.3px}
+.sub{margin:0 0 18px;color:var(--sub);font-size:12.5px}
+label{display:block;font-size:12px;color:var(--sub);margin:0 0 5px}
+input{
+  width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+  border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;outline:none;
+  margin-bottom:12px;transition:.14s;
+}
 input:focus{border-color:var(--acc)}
-button{cursor:pointer;border:none;border-radius:8px;padding:9px 15px;background:var(--acc);color:#fff;font-size:14px;font-family:inherit}
-button:hover{filter:brightness(1.1)}
-button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
-button.sm{padding:6px 11px;font-size:13px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.badge{font-size:12px;color:var(--sub);background:var(--bg);border:1px solid var(--line);padding:5px 11px;border-radius:20px}
-#log{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:12px;
-max-height:170px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--sub);white-space:pre-wrap}
-.hide{display:none}
-.note{background:var(--card2);border-left:3px solid var(--warn);padding:10px 12px;border-radius:6px;
-font-size:12px;color:var(--sub);margin:10px 0}
-.fp{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--sub);word-break:break-all}
-.ui-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.ui-spacer{flex:1}
-.mini{max-width:420px;margin:8vh auto 0}
+button{
+  background:var(--acc);border:1px solid var(--acc);color:#fff;
+  border-radius:9px;padding:10px 16px;font:inherit;font-size:14px;
+  cursor:pointer;transition:.14s;
+}
+button:hover{filter:brightness(1.08)}
+button:disabled{opacity:.55;cursor:default;filter:none}
+.msg{min-height:17px;font-size:12.5px;color:var(--danger);margin-top:10px}
+.msg.ok{color:var(--acc2)}
+.hint{margin-top:9px;font-size:11px;color:var(--sub);text-align:center}
+.hide{display:none!important}
+
+/* 配对 */
+.code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:22px;letter-spacing:2px;text-align:center;
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:14px;margin:14px 0 8px;color:var(--acc);
+}
+/* 日志 */
+.log{
+  margin-top:14px;background:var(--bg);border:1px solid var(--line);border-radius:9px;
+  padding:9px 11px;font-size:11.5px;color:var(--sub);
+  max-height:132px;overflow:auto;white-space:pre-wrap;word-break:break-all;
+  font-family:ui-monospace,Menlo,monospace;
+}
+@media(max-width:640px){ body{padding:14px} .card{padding:18px} }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<div class="card mini hide" id="loginCard">
-  <label>账户</label><input id="inUser" placeholder="账户名" autocomplete="username">
-  <label>密码</label><input id="inPass" type="password" placeholder="密码" autocomplete="current-password">
-  <div class="row" style="margin-top:12px"><button id="btnLogin" style="flex:1">登 录</button></div>
-  <div id="loginMsg" class="fp" style="margin-top:10px;color:var(--danger);min-height:16px"></div>
-  <div style="margin-top:8px;font-size:11px;color:var(--sub);text-align:center">版本 <span id="ver">-</span></div>
-</div>
-
-<div class="card hide" id="pairCard">
-  <b style="font-size:15px">授权</b>
-  <div class="note">请使用授权码激活</div>
-  <div style="text-align:center;margin:14px 0">
-    <div id="devCode" style="font-size:26px;letter-spacing:2px;font-family:ui-monospace,Menlo,Consolas,monospace;
-      color:var(--acc);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px">-</div>
-    <div id="pairStatus" class="fp" style="margin-top:10px">等待确认…</div>
+  <!-- ===== 视图：登录 ===== -->
+  <div class="card mini" id="vLogin">
+    <h1>云盘</h1>
+    <p class="sub">输入账户与密码进入</p>
+    <label for="inUser">账户</label>
+    <input id="inUser" autocomplete="username" placeholder="账户名">
+    <label for="inPass">密码</label>
+    <input id="inPass" type="password" autocomplete="current-password" placeholder="密码">
+    <button id="btnLogin" style="width:100%">登 录</button>
+    <div class="msg" id="loginMsg"></div>
+    <div class="hint">版本 <span id="ver">-</span></div>
   </div>
-</div>
 
-<div id="uiHost"></div>
+  <!-- ===== 视图：授权 ===== -->
+  <div class="card mini hide" id="vPair">
+    <h1>授权</h1>
+    <p class="sub">请使用授权码激活</p>
+    <div class="code" id="devCode">----</div>
+    <div class="msg" id="pairMsg"></div>
+    <button id="btnCancel" style="width:100%;margin-top:8px;background:var(--card2);border-color:var(--line);color:var(--txt)">取消</button>
+  </div>
 
+  <!-- ===== 视图：主界面 ===== -->
+  <div id="uiHost"></div>
 
+  <div class="log hide" id="logBox"></div>
 </div>
 
 <script>
-/* ============ 内核 ============ */
+/* =========================================================
+   常量（构建时注入）
+   ========================================================= */
+const REPO   = 'wlzy2333/6c6e1';
+const BRANCH = 'bus';
+const VER    = 'baf5e5483aee';
+const TOKEN_ENV = {"v":1,"iters":600000,"salt":"O0ZLRQFblxJgXWSLuT/00w==","nonce":"BdFErorC4J5VtLdW","ct":"GmsWn93eey4OEG/0F+uoAzfNl61TaZ3e+z8dyxsWQ9hcTxPlTdzXyvt6ysMB5Q6q+1y1AAvjObKQF6d/1GX3AxC7WrUVWTFN7nbLqTPVJHNiblgnshy/Na13fLsxvlT9R0rmSoBbC3uaLz25WGdwevkqfl83"};   // 加密的访问凭据
+const BOX_PUB   = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE38Hhqn2Q6Rv86QfwEw2dSdl/HPm988GwMt/zbCQUCqD6rMraSbG5pORhDDoSC6+vpYFkwwXcYG7lTOtyqPkqLw==';   // 上行加密公钥
+const UI_PACK   = {"v":1,"iters":600000,"salt":"HHv/VV0hLb1GvK7ei0ooXA==","nonce":"7mRy/6X+lvT8hPUV","ct":"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"};     // 加密的界面包
+
+/* =========================================================
+   基础工具
+   ========================================================= */
 const $ = s => document.querySelector(s);
-const enc = s => new TextEncoder().encode(s);
-const dec = b => new TextDecoder().decode(b);
-function b64(buf){let s='',b=new Uint8Array(buf);for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
-function unb64(str){const s=atob(str),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a.buffer;}
-function toHex(b){return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
-
-/* ---- 路径映射 ---- */
-const OBF_SALT='p-01:';
-async function obf(name){
-  const h=toHex(await crypto.subtle.digest('SHA-256',enc(OBF_SALT+name))).slice(0,16);
-  return 'cache/'+h+'.dat';
-}
-async function obfAsset(name){
-  const h=toHex(await crypto.subtle.digest('SHA-256',enc(OBF_SALT+name))).slice(0,16);
-  return 'assets/'+h+'.bin';
-}
-const DIR_UP='uploads';
-
-const UI_VER='85b409259b18';   // 界面版本号：部署新版后旧缓存自动失效
-const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"X3wS4mWINrJXhVlkFgzKby10b2s=","nonce":"uIYhr2e1fVQ9QeHn","ct":"3y+ZhXSXLxJK/qKFyD39+SuPQ5WOfFof60VW2ge2PFBC2G6POA/bSsOq3j5dxrezQTvz0utuDGhv8rZbNVNEu9PL63s9/dmsXpiy0+jd355822n+qk7cQneL4oDaxrtLykRm5+Qhj8nX9rtA9g=="};
-let keys=null, boxPub=null, COOKIE='', DEVFP=null;
-let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
-let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
-
-function log(m){const l=$('#log');if(!l)return;l.textContent+='\n'+m;l.scrollTop=l.scrollHeight;}
-
-/* ---- 传输 ---- */
-function gh(path,opt={}){
-  const url='https://api.github.com/repos/'+cfg.repo+'/contents/'+path+(path.includes('?')?'&':'?')+'ref='+cfg.branch;
-  return fetch(url,Object.assign({},opt,{headers:Object.assign({
-    'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'},opt.headers||{})}));
-}
-async function readFile(p){
-  const r=await gh(p);
-  if(r.status===404)return{content:null,sha:null};
-  if(!r.ok)throw new Error('读取失败 '+r.status);
-  const d=await r.json();
-  return{content:d.content?dec(unb64(d.content.replace(/\n/g,''))):'',sha:d.sha};
-}
-// 随机提交身份：作者名 3-5 位，邮箱用非 GitHub 域名 → 绝不关联真实账号
-function rndAuth(){
-  const cs='abcdefghijklmnopqrstuvwxyz0123456789';
-  const a=new Uint8Array(5); crypto.getRandomValues(a);
-  const n=Array.from(a).map(b=>cs[b%cs.length]).join('').slice(0,3+(a[0]%3));
-  return {name:n, email:n+'@local'};
+const enc = new TextEncoder(), dec = new TextDecoder();
+function b64(buf){ let s=''; const b=new Uint8Array(buf); for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function unb64(str){ const s=atob(str), a=new Uint8Array(s.length); for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a.buffer; }
+function hex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function log(m){
+  const box=$('#logBox');
+  if(!box) return;
+  box.classList.remove('hide');
+  box.textContent += m+'\n';
+  box.scrollTop = box.scrollHeight;
 }
 
-// 提交信息：20 位内随机乱码，无语义无固定指纹
-function rndMsg(){
-  const a=new Uint8Array(10); crypto.getRandomValues(a);
-  return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20);
-}
-
-async function writeFile(p,content,msg,sha){
-  const AUTH=rndAuth();
-  // 并发写入会 409：重取 sha 后重试，避免"指令丢了却毫无提示"
-  for(let attempt=0;attempt<3;attempt++){
-    const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+p,{method:'PUT',
-      headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
-      body:JSON.stringify({message:msg,content:b64(enc(content)),branch:cfg.branch,
-        author:AUTH,committer:AUTH,...(sha?{sha}:{})})});
-    if(r.status===409){
-      const cur=await readFile(p); sha=(cur&&cur.sha)||null;
-      await new Promise(x=>setTimeout(x,400)); continue;
-    }
-    if(!r.ok)throw new Error('写入失败 '+r.status);
-    return r.json();
-  }
-  throw new Error('写入冲突，请重试');
-}
-
-/* ---- 加密基元 ---- */
-async function importECDHPriv(jwk){return crypto.subtle.importKey('jwk',jwk,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);}
-async function deriveAES(shared,salt,info){
-  const hk=await crypto.subtle.importKey('raw',shared,'HKDF',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:enc(salt),info:enc(info)},
-    hk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-}
-async function eciesEncrypt(pubB64,obj,salt,info){
-  const pub=await crypto.subtle.importKey('spki',unb64(pubB64),{name:'ECDH',namedCurve:'P-256'},false,[]);
-  const eph=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
-  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:pub},eph.privateKey,256);
-  const aes=await deriveAES(shared,salt,info);
-  const iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},aes,enc(JSON.stringify(obj)));
-  return {eph:b64(await crypto.subtle.exportKey('spki',eph.publicKey)),nonce:b64(iv),ct:b64(ct)};
-}
-async function eciesDecrypt(env,jwk,salt,info){
-  const eph=await crypto.subtle.importKey('spki',unb64(env.eph),{name:'ECDH',namedCurve:'P-256'},false,[]);
-  const priv=await importECDHPriv(jwk);
-  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:eph},priv,256);
-  const aes=await deriveAES(shared,salt,info);
-  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.nonce)},aes,unb64(env.ct));
-  return JSON.parse(dec(pt));
-}
-async function signCmd(o){
-  if(!keys||!keys.sigPriv)return null;
-  const body = o.v===2 ? {id:o.id,ts:o.ts,eph:o.eph,nonce:o.nonce,ct:o.ct}
-                       : {id:o.id,ts:o.ts,cmd:o.cmd,args:o.args};
-  const k=await crypto.subtle.importKey('jwk',keys.sigPriv,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
-  return b64(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},k,enc(JSON.stringify(body))));
-}
-async function pbkdf2(pw,saltB64,iters,acc){
-  // 材料 = 账户 + \0 + 密码
+/* =========================================================
+   凭据：由 账户+密码 派生密钥解密
+   ========================================================= */
+let TOKEN='';
+async function derive(pw, saltB64, iters, acc){
   const material=(acc||'')+'\u0000'+pw;
-  const km=await crypto.subtle.importKey('raw',enc(material),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt:unb64(saltB64),iterations:iters,hash:'SHA-256'},
+  const km=await crypto.subtle.importKey('raw', enc.encode(material),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt:unb64(saltB64), iterations:iters, hash:'SHA-256'},
     km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
-
-/* ---- 凭据 ---- */
-async function unlockToken(acc,pw){
-  if(!TOKEN_ENV) return '';
-  try{
-    const aes=await pbkdf2(pw,TOKEN_ENV.salt,TOKEN_ENV.iters||600000,acc);
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(TOKEN_ENV.nonce)},aes,unb64(TOKEN_ENV.ct));
-    return dec(pt);
-  }catch(e){ return ''; }
+async function aesDec(key, o){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(o.nonce)}, key, unb64(o.ct));
+  return dec.decode(pt);
 }
 
-/* ---- 指令 ---- */
-async function cmd(name,args){
-  if(!COOKIE && name!=='pair' && name!=='hello'){
-    log('未授权，等待激活');
-    // 给出可见提示，避免"点了没反应"
-    try{ var el=document.getElementById('to');
-      if(el){ el.textContent='尚未获得授权，请重新登录'; el.className='cd-toast on err';
-        setTimeout(function(){el.className='cd-toast err'},2600); } }catch(e){}
-    return null;
-  }
-  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-  const ts=Date.now();
-  let o,sig;
-  if(boxPub){
-    const env=await eciesEncrypt(boxPub,{cmd:name,args:args||{},...(COOKIE?{cookie:COOKIE}:{})},'u-01','i-01');
-    o={v:2,id,ts,...env};
-    sig=await signCmd(o); if(sig)o.sig=sig;
-    log('→ '+name+' [加密'+(sig?'+签名':'')+']');
-  }else{
-    const a=args||{};
-    if(a.password||a.new||a.value){ log('✗ 已阻止发送'); return null; }
-    o={id,ts,cmd:name,args:a};
-    sig=await signCmd(o); if(sig)o.sig=sig;
-    log('→ '+name+(sig?' [签名]':' [明文]'));
-  }
-  const cur=await readFile(await obf('commands.jsonl'));
-  await writeFile(await obf('commands.jsonl'),(cur.content||'')+JSON.stringify(o)+'\n',rndMsg(),cur.sha);
-  PENDING.push(id);
-  (window.__PN=window.__PN||{})[id]=name;   // 结果回调时用它标注指令名
-  return id;
-}
-
-async function uploadToInbox(f){
-  await writeFile(DIR_UP+'/'+f.name, b64(new Uint8Array(await f.arrayBuffer())), rndMsg(), null);
-  log('已就绪：'+f.name);
-}
-
-/* ---- 轮询 ---- */
-async function poll(){
-  if(!cfg.repo||!cfg.token)return;
-  try{
-    // 优先读本设备专属状态（服务端按设备公钥密封），读不到再回落全局降级版
-    let st = DEVFP ? await readFile(await obf('state/'+DEVFP)) : {content:null};
-    if(!st || !st.content) st = await readFile(await obf('state.json'));
-    if(st && st.content){
-      try{
-        const d = (JSON.parse(st.content).v===1 && keys)
-          ? await eciesDecrypt(JSON.parse(st.content), keys.encPriv,'e-01','i-01')
-          : JSON.parse(st.content);
-        stateCbs.forEach(f=>f(d));
-      }catch(e){/* 解密失败跳过 */}
-    }
-    for(const id of PENDING.slice()){
-      const r=await readFile(await obf('results/'+id));
-      if(!r.content)continue;
-      let res;
-      try{
-        res = (JSON.parse(r.content).v===1 && keys)
-          ? await eciesDecrypt(JSON.parse(r.content), keys.encPriv,'e-01','i-01')
-          : JSON.parse(r.content);
-      }catch(e){ res={ok:false,msg:'解密失败'}; }
-      // 服务端判定 cookie 无效/过期/吊销 → 清会话并回到登录页
-      if(res.need_cookie||/Cookie 校验失败|尚未签发|已吊销|已过期/.test(res.msg||'')){
-        clearSession(); return;
-      }
-      log((res.ok?'✓ ':'✗ ')+(res.msg||'').slice(0,90));
-      if(res.url)log('   下载：'+res.url);
-      PENDING=PENDING.filter(x=>x!==id);
-      res.__cmd=(window.__PN||{})[id]||'';   // 供界面精确识别
-      if(res.status)await onPair(res);
-      resultCbs.forEach(f=>f(res));
-      if(res.ok&&!res.status&&!res.data){
-        const h=window.__REFRESH_HOOK;
-        setTimeout(()=>{ h?h():(window.APP&&window.APP.cmd('list',{root:'data',path:''})); },300);
-      }
-    }
-  }catch(e){ log('轮询：'+e.message); }
-}
-
-
-function clearSession(){
-  localStorage.removeItem('s1c'); localStorage.removeItem('s1u');
-  COOKIE=''; READY=false;
-  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
-  if(pairTimer){clearInterval(pairTimer);pairTimer=null;}
-  $('#uiHost').innerHTML='';
-  $('#pairCard').classList.add('hide');
-  $('#loginCard').classList.remove('hide');
-  log('会话已失效，请重新登录');
-}
-
-/* ---- 解密与注入 ---- */
-async function loadUIPack(password,account){
-  let r;
-  try{
-    r=await readFile(await obfAsset('ui/app.enc'));
-  }catch(e){
-    return {err:'连接失败：'+e.message};
-  }
-  if(!r.content)return {err:'资源暂不可用'};
-  let pack;
-  try{ pack=JSON.parse(r.content); }catch(e){ return {err:'资源格式错误'}; }
-  try{
-    const aes=await pbkdf2(password,pack.salt,pack.iters||600000,account);
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(pack.nonce)},aes,unb64(pack.ct));
-    // 明文是 {"html":...,"bundle":...} 的 JSON，必须解析后取字段
-    const obj=JSON.parse(dec(pt));
-    return {html:obj.html, css:obj.css||'', js:obj.js||'',
-            iters:pack.iters, bundle:obj.bundle||null};
-  }catch(e){ return {err:'账户或密码错误'}; }
-}
-
-function injectUI(html,css,js){
-  const host=$('#uiHost');
-  // 样式来自包内 css 字段；脚本来自 js 字段，不经 DOM 往返避免被解析器改写
-  if(css){
-    const st=document.createElement('style');
-    st.textContent=css;
-    document.head.appendChild(st);
-  }
-  host.innerHTML=(html||'').replace(/<script>[\s\S]*?<\/script>/g,'');
-  if(js){
-    const sc=document.createElement('script');
-    sc.textContent=js;
-    document.body.appendChild(sc);
-  }
-}
-
-
-/* ---- 会话持久化：刷新后免登录（参考主流网盘的 session 恢复）----
-   界面用 cookie 派生的密钥加密后缓存；密码绝不落盘。
-   真正的门禁仍在服务端：cookie 失效或被吊销时会被踢回登录页。 */
-async function uiKey(ck){
-  const raw=await crypto.subtle.importKey('raw',enc('s1u'+ck),'PBKDF2',false,['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:enc('s1u'),iterations:50000},
-    raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-}
-async function cacheUI(res){
-  const ck=localStorage.getItem('s1c')||'';
-  if(!ck)return;                       // 未激活（无 cookie）时不缓存
-  try{
-    const iv=crypto.getRandomValues(new Uint8Array(12));
-    // token 与界面一并缓存：否则刷新后 cfg.token 为空，poll() 直接 return → 全站无响应
-    const data=enc(JSON.stringify({html:res.html,css:res.css,js:res.js,token:cfg.token}));
-    const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await uiKey(ck),data);
-    localStorage.setItem('s1u',JSON.stringify({v:UI_VER,iv:b64(iv),ct:b64(new Uint8Array(ct))}));
-  }catch(e){}
-}
-async function restoreUI(){
-  const ck=localStorage.getItem('s1c')||'', cache=localStorage.getItem('s1u');
-  if(!ck||!cache)return false;
-  try{
-    const o=JSON.parse(cache);
-    // 版本不符 → 丢弃旧缓存，回退到登录页重新拉取最新界面
-    if(o.v!==UI_VER){ localStorage.removeItem('s1u'); return false; }
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},await uiKey(ck),unb64(o.ct));
-    const d=JSON.parse(dec(pt));
-    if(d&&d.token)cfg.token=d.token;   // 关键：恢复访问凭据
-    return d;
-  }catch(e){ return false; }
-}
-
-
-/* ---- 页面内输入：替代 prompt（手机浏览器常不弹或体验差）---- */
-function ask(title, def, isPw){
-  return new Promise(function(res){
-    var w=document.createElement('div');
-    w.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;'+
-      'display:flex;align-items:center;justify-content:center;padding:20px';
-    w.innerHTML='<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'+
-      'padding:20px;max-width:340px;width:100%">'+
-      '<div style="font-size:15px;margin-bottom:12px">'+String(title||'').replace(/[<>&]/g,'')+'</div>'+
-      '<input id="__askIn" type="'+(isPw?'password':'text')+'" value="'+String(def||'').replace(/"/g,'&quot;')+'" '+
-      'style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);'+
-      'color:var(--txt);border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;outline:none">'+
-      '<div style="display:flex;gap:8px;margin-top:14px">'+
-      '<button id="__askOk" style="flex:1;background:var(--acc);border:0;color:#fff;'+
-      'border-radius:9px;padding:10px;font:inherit;font-size:14px;cursor:pointer">确定</button>'+
-      '<button id="__askNo" style="flex:1;background:var(--card2);border:1px solid var(--line);'+
-      'color:var(--txt);border-radius:9px;padding:10px;font:inherit;font-size:14px;cursor:pointer">取消</button>'+
-      '</div></div>';
-    document.body.appendChild(w);
-    var inp=w.querySelector('#__askIn');
-    setTimeout(function(){inp.focus();},60);
-    function done(v){ w.remove(); res(v); }
-    w.querySelector('#__askOk').onclick=function(){ done(inp.value); };
-    w.querySelector('#__askNo').onclick=function(){ done(null); };
-    inp.onkeydown=function(e){ if(e.key==='Enter')done(inp.value); if(e.key==='Escape')done(null); };
-    w.onclick=function(e){ if(e.target===w)done(null); };
-  });
-}
-window.__ask = ask;
-
-/* ---- 配对 ---- */
-function fmtCode(fp){const s=(fp||'').slice(0,12).toUpperCase();return s.match(/.{1,4}/g).join('-');}
-async function requestPair(){
-  const r=await cmd('pair',{op:'request',device_fp:DEVFP,
-    device_id:navigator.userAgent.slice(0,40),
-    enc_pub:keys.encPub,sig_pub:keys.sigPub,
-    account:PENDACC,password:PENDPW});
-  $('#pairCard').classList.remove('hide');
-  // cmd() 返回指令 id，结果由 onPair 回调异步送达；此处仅先占位
-  $('#devCode').textContent=fmtCode(DEVFP);
-  if(pairTimer)clearInterval(pairTimer);
-  pairTimer=setInterval(()=>cmd('pair',{op:'status',device_fp:DEVFP}),5000);
-  log('标识码 '+fmtCode(DEVFP));
-}
-async function onPair(res){
-  if(res.status==='active'&&res.cookie_env){
-    try{
-      COOKIE=(await eciesDecrypt(res.cookie_env,keys.encPriv,'d-01','i-01')).cookie;
-      localStorage.setItem('s1c',COOKIE);
-      if(pairTimer)clearInterval(pairTimer);
-      $('#pairCard').classList.add('hide');
-      log('已激活');
-      READY=true; readyCbs.forEach(f=>f());
-      return;
-    }catch(e){ log('凭据处理失败'); }
-  }
-  // 授权码由服务端随机下发，每次申请都不同（与设备指纹无关）
-  if(res.code)$('#devCode').textContent=fmtCode(res.code);
-  if(res.status==='pending')$('#pairStatus').textContent='等待激活中…（每 5 秒自动查询）';
-  if(res.status==='revoked'){$('#pairStatus').textContent='该设备已被吊销';if(pairTimer)clearInterval(pairTimer);}
-}
-
-/* ---- 本地凭据 ---- */
-async function ensureKeys(bundle){
-  if(bundle&&bundle.encPriv){ keys=bundle; return; }
-  const saved=localStorage.getItem('s1k');
+/* =========================================================
+   设备密钥
+   ========================================================= */
+let keys=null, COOKIE='', DEVFP=null;
+async function ensureKeys(){
+  const saved=localStorage.getItem('k1');
   if(saved){
     try{
       keys=JSON.parse(saved);
-      // 旧会话可能只存了私钥：用私钥反推公钥，保证后续派生指纹不失败
-      if(keys&&keys.encPriv&&!keys.encPub){
+      if(keys.encPriv && !keys.encPub){
         const e=await crypto.subtle.importKey('jwk',keys.encPriv,{name:'ECDH',namedCurve:'P-256'},true,[]);
         keys.encPub=b64(await crypto.subtle.exportKey('spki',e.publicKey));
       }
-      if(keys&&keys.sigPriv&&!keys.sigPub){
-        const sg=await crypto.subtle.importKey('jwk',keys.sigPriv,
-          {name:'ECDSA',namedCurve:'P-256'},true,['sign']);
-        keys.sigPub=b64(await crypto.subtle.exportKey('spki',sg.publicKey));
+      if(keys.sigPriv && !keys.sigPub){
+        const s=await crypto.subtle.importKey('jwk',keys.sigPriv,{name:'ECDSA',namedCurve:'P-256'},true,['sign']);
+        keys.sigPub=b64(await crypto.subtle.exportKey('spki',s.publicKey));
       }
-      if(keys&&keys.encPub&&keys.sigPub){
-        localStorage.setItem('s1k',JSON.stringify(keys)); return;
-      }
+      if(keys.encPub && keys.sigPub){ localStorage.setItem('k1',JSON.stringify(keys)); return; }
     }catch(e){}
   }
   const e=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
   const s=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
-  keys={encPriv:await crypto.subtle.exportKey('jwk',e.privateKey),
-        sigPriv:await crypto.subtle.exportKey('jwk',s.privateKey),
-        encPub:b64(await crypto.subtle.exportKey('spki',e.publicKey)),
-        sigPub:b64(await crypto.subtle.exportKey('spki',s.publicKey))};
-  localStorage.setItem('s1k',JSON.stringify(keys));
-}
-async function ensurePubUploaded(){
-  const cur=await readFile(await obf('keys/public.json'));
-  if(cur.content){
-    try{const d=JSON.parse(cur.content);
-      if(d.enc_pub===keys.encPub&&d.sig_pub===keys.sigPub)return;}catch(e){}
-  }
-  await writeFile(await obf('keys/public.json'),JSON.stringify({enc_pub:keys.encPub,sig_pub:keys.sigPub,
-    created:new Date().toISOString()},null,2),'publish device public keys',cur.sha);
-  log('正在连接');
+  keys={
+    encPriv:await crypto.subtle.exportKey('jwk',e.privateKey),
+    sigPriv:await crypto.subtle.exportKey('jwk',s.privateKey),
+    encPub:b64(await crypto.subtle.exportKey('spki',e.publicKey)),
+    sigPub:b64(await crypto.subtle.exportKey('spki',s.publicKey))
+  };
+  localStorage.setItem('k1',JSON.stringify(keys));
 }
 
-/* ---- 接口 ---- */
-window.APP={
-  cmd, log, uploadToInbox,
-  get cfg(){return cfg;}, get keys(){return keys;}, get cookie(){return COOKIE;},
-  onState:f=>stateCbs.push(f), onResult:f=>resultCbs.push(f),
-  onReady:f=>{readyCbs.push(f); if(READY)f();},
-  changePassword:async newpw=>{
-    log('已提交');
-    await cmd('chpasswd',{new:newpw});
-  }
-};
-
-/* ---- 登录 ---- */
-$('#btnLogin').onclick=async()=>{
-  const pw=$('#inPass').value, acc=$('#inUser').value.trim();
-  if(!acc){$('#loginMsg').textContent='请输入账户名';return;}
-  if(!pw){$('#loginMsg').textContent='请输入密码';return;}
-  $('#loginMsg').textContent='';
-  cfg.token=await unlockToken(acc,pw);
-  if(!cfg.token){ $('#loginMsg').textContent='账户或密码错误'; return; }
+/* ECIES：上行加密（用服务公钥） */
+async function boxUp(obj){
+  const pk=await crypto.subtle.importKey('spki',unb64(BOX_PUB),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const eph=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'ECDH',public:pk},eph.privateKey,256);
+  const hk=await crypto.subtle.importKey('raw',bits,'HKDF',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey(
+    {name:'HKDF',hash:'SHA-256',salt:enc.encode('u-01'),info:enc.encode('i-01')},
+    hk,{name:'AES-GCM',length:256},false,['encrypt']);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(obj)));
+  return {v:1, eph:b64(await crypto.subtle.exportKey('spki',eph.publicKey)), iv:b64(iv), ct:b64(ct)};
+}
+/* ECIES：下行解密（用设备私钥） */
+async function boxDown(env){
+  const priv=await crypto.subtle.importKey('jwk',keys.encPriv,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);
+  const pk=await crypto.subtle.importKey('spki',unb64(env.eph),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const bits=await crypto.subtle.deriveBits({name:'ECDH',public:pk},priv,256);
+  const hk=await crypto.subtle.importKey('raw',bits,'HKDF',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey(
+    {name:'HKDF',hash:'SHA-256',salt:enc.encode('d-01'),info:enc.encode('i-01')},
+    hk,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},k,unb64(env.ct));
+  return JSON.parse(dec.decode(pt));
+}
+async function signCmd(o){
   try{
-    const boxR=await readFile(await obfAsset('keys/box_public.json'));
-    if(boxR.content)boxPub=JSON.parse(boxR.content).box_pub;
+    const k=await crypto.subtle.importKey('jwk',keys.sigPriv,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+    return b64(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},k,
+      enc.encode(JSON.stringify({cmd:o.cmd,args:o.args,id:o.id,ts:o.ts}))));
+  }catch(e){ return null; }
+}
+
+/* =========================================================
+   仓库读写
+   ========================================================= */
+async function gh(path, opt){
+  const url='https://api.github.com/repos/'+REPO+'/contents/'+path+'?ref='+BRANCH;
+  const r=await fetch(url, Object.assign({
+    headers:{Authorization:'Bearer '+TOKEN, Accept:'application/vnd.github+json'}
+  },opt||{}));
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+async function readFile(path){
+  try{
+    const d=await gh(path);
+    if(!d || !d.content) return {content:null, sha:null};
+    return {content: decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))), sha:d.sha};
+  }catch(e){ return {content:null, sha:null}; }
+}
+async function writeFile(path, text, sha){
+  const a=rndAuth();
+  await gh(path, {method:'PUT', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      message:rndMsg(), content:b64(enc.encode(text)), branch:BRANCH,
+      author:a, committer:a, ...(sha?{sha}:{})
+    })});
+}
+function rndAuth(){ const n=Math.random().toString(36).slice(2,7); return {name:n,email:n+'@local'}; }
+function rndMsg(){
+  const a=new Uint8Array(10); crypto.getRandomValues(a);
+  return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20);
+}
+function obf(p){ return 'c/'+hexOf(p); }
+function hexOf(p){
+  let h=0; for(let i=0;i<p.length;i++){ h=(h*31+p.charCodeAt(i))>>>0; }
+  return h.toString(16).padStart(8,'0');
+}
+
+/* =========================================================
+   界面包解密
+   ========================================================= */
+async function openUI(acc,pw){
+  const k=await derive(pw, UI_PACK.salt, UI_PACK.iters, acc);
+  const pt=await aesDec(k, UI_PACK);
+  return JSON.parse(pt);
+}
+
+/* =========================================================
+   指令与轮询
+   ========================================================= */
+let PENDING=[], NAMES={}, pollTimer=null, pairTimer=null;
+let stateCbs=[], resultCbs=[], readyCbs=[], READY=false;
+
+async function cmd(name,args){
+  if(!COOKIE && name!=='pair'){
+    const t=$('#loginMsg');
+    if(t){ t.textContent='尚未授权，请重新登录'; }
+    return null;
+  }
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const ts=Date.now();
+  let o;
+  if(BOX_PUB){
+    o=Object.assign({v:2,id,ts}, await boxUp({cmd:name,args:args||{},...(COOKIE?{cookie:COOKIE}:{})}));
+    const s=await signCmd(o); if(s) o.sig=s;
+    log('→ '+name);
+  }else{
+    o={id,ts,cmd:name,args:args||{}};
+    log('→ '+name+' [未加密]');
+  }
+  try{
+    const cur=await readFile(obf('commands.jsonl'));
+    await writeFile(obf('commands.jsonl'), (cur.content||'')+JSON.stringify(o)+'\n', cur.sha);
+  }catch(e){ log('✗ 发送失败 '+e.message); return null; }
+  PENDING.push(id); NAMES[id]=name;
+  return id;
+}
+
+async function poll(){
+  if(!TOKEN) return;
+  try{
+    const r=await readFile(obf('results/'+'last'));
+    for(const id of PENDING.slice()){
+      const res=await readFile(obf('results/'+id));
+      if(!res.content) continue;
+      let out;
+      try{
+        const j=JSON.parse(res.content);
+        out = (j.v===1 && keys) ? await boxDown(j) : j;
+      }catch(e){ out={ok:false,msg:'解密失败'}; }
+      PENDING=PENDING.filter(x=>x!==id);
+      out.__cmd=NAMES[id]||'';
+      log((out.ok?'✓ ':'✗ ')+(out.msg||'').slice(0,80));
+      if(out.need_cookie){ clearSession(); return; }
+      if(out.status) await onPair(out);
+      resultCbs.forEach(f=>f(out));
+      if(out.ok && !out.status && !out.data){
+        setTimeout(()=>{ const h=window.__REFRESH_HOOK; h?h():cmd('list',{root:'data',path:''}); },300);
+      }
+    }
+    const st=await readFile(obf('state.json'));
+    if(st.content){
+      try{
+        const j=JSON.parse(st.content);
+        const d=(j.v===1&&keys) ? await boxDown(j) : j;
+        stateCbs.forEach(f=>f(d));
+      }catch(e){}
+    }
+  }catch(e){ log('轮询 '+e.message); }
+}
+
+function clearSession(){
+  localStorage.removeItem('k2'); COOKIE=''; READY=false;
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  if(pairTimer){ clearInterval(pairTimer); pairTimer=null; }
+  $('#uiHost').innerHTML='';
+  $('#vPair').classList.add('hide');
+  $('#vLogin').classList.remove('hide');
+  const t=$('#loginMsg'); if(t){ t.className='msg'; t.textContent='会话已失效，请重新登录'; }
+}
+
+/* =========================================================
+   配对
+   ========================================================= */
+function fmtCode(s){ const t=(s||'').replace(/-/g,'').slice(0,12).toUpperCase(); return t.match(/.{1,4}/g).join('-'); }
+
+async function requestPair(acc,pw){
+  const r=await cmd('pair',{op:'request',device_fp:DEVFP,
+    device_id:navigator.userAgent.slice(0,40),
+    enc_pub:keys.encPub, sig_pub:keys.sigPub,
+    account:acc, password:pw});
+  $('#vPair').classList.remove('hide');
+  if(pairTimer) clearInterval(pairTimer);
+  pairTimer=setInterval(()=>cmd('pair',{op:'status',device_fp:DEVFP}),5000);
+  return r;
+}
+
+async function onPair(res){
+  if(res.status==='active' && res.cookie_env){
+    try{
+      COOKIE=(await boxDown(res.cookie_env)).cookie;
+      localStorage.setItem('k2',COOKIE);
+      if(pairTimer){ clearInterval(pairTimer); pairTimer=null; }
+      $('#vPair').classList.add('hide');
+      log('已授权');
+      READY=true; readyCbs.forEach(f=>f());
+      return;
+    }catch(e){ log('凭据处理失败'); }
+  }
+  if(res.code) $('#devCode').textContent=fmtCode(res.code);
+  if(res.status==='pending') $('#pairMsg').textContent='等待确认（每 5 秒自动查询）';
+  if(res.status==='revoked'){
+    $('#pairMsg').textContent='该设备已被吊销';
+    if(pairTimer){ clearInterval(pairTimer); pairTimer=null; }
+  }
+}
+
+/* =========================================================
+   界面注入
+   ========================================================= */
+function injectUI(pack){
+  const host=$('#uiHost');
+  if(pack.css){
+    const st=document.createElement('style');
+    st.textContent=pack.css;
+    document.head.appendChild(st);
+  }
+  host.innerHTML=pack.html||'';
+  if(pack.js){
+    const sc=document.createElement('script');
+    sc.textContent=pack.js;
+    document.body.appendChild(sc);
+  }
+}
+
+/* =========================================================
+   登录
+   ========================================================= */
+async function doLogin(){
+  const acc=$('#inUser').value.trim(), pw=$('#inPass').value;
+  const msg=$('#loginMsg');
+  msg.className='msg'; msg.textContent='';
+  if(!acc){ msg.textContent='请输入账户'; return; }
+  if(!pw){ msg.textContent='请输入密码'; return; }
+  $('#btnLogin').disabled=true; msg.textContent='正在校验';
+
+  try{
+    TOKEN=await (async()=>{
+      const k=await derive(pw, TOKEN_ENV.salt, TOKEN_ENV.iters, acc);
+      return aesDec(k, TOKEN_ENV);
+    })();
   }catch(e){}
-  let res;
-  try{
-    res=await loadUIPack(pw,acc);
-  }catch(e){
-    $('#loginMsg').textContent='登录出错：'+e.message;
-    log('✗ 登录出错：'+e.message);
+  if(!TOKEN){
+    $('#btnLogin').disabled=false;
+    msg.textContent='账户或密码错误';
     return;
   }
-  if(res.err){ $('#loginMsg').textContent=res.err; log('✗ '+res.err); return; }
-  $('#inPass').value='';
-  $('#loginCard').classList.add('hide');
-  log('正在初始化');
-  await ensureKeys(res.bundle);
-  await ensurePubUploaded();
-  DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
-  injectUI(res.html, res.css, res.js);
-  try{ localStorage.setItem('s1n',acc); }catch(e){}   // 只记账户名，不记密码
-  COOKIE=localStorage.getItem('s1c')||'';
-  PENDPW=pw; PENDACC=acc;
-  await requestPair();
-  if(pollTimer)clearInterval(pollTimer);
-  pollTimer=setInterval(poll,3000);
-  poll();
+  log('凭据就绪');
+
+  let pack;
+  try{ pack=await openUI(acc,pw); }
+  catch(e){
+    $('#btnLogin').disabled=false;
+    msg.textContent='资源解密失败';
+    return;
+  }
+
+  await ensureKeys();
+  DEVFP=hex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
+  localStorage.setItem('k3',acc);
+  COOKIE=localStorage.getItem('k2')||'';
+  $('#vLogin').classList.add('hide');
+
+  if(!COOKIE){
+    await requestPair(acc,pw);
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer=setInterval(poll,3000);
+    poll();
+    // 授权后注入界面
+    const wait=setInterval(()=>{
+      if(READY){ clearInterval(wait); injectUI(pack); }
+    },400);
+  }else{
+    injectUI(pack);
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer=setInterval(poll,3000);
+    poll();
+  }
+  $('#btnLogin').disabled=false;
+}
+
+/* =========================================================
+   对外接口（供主界面调用）
+   ========================================================= */
+window.APP={
+  cmd,
+  log,
+  onState:f=>stateCbs.push(f),
+  onResult:f=>resultCbs.push(f),
+  onReady:f=>{ READY?f():readyCbs.push(f); },
+  uploadToInbox:async function(file){
+    const buf=await file.arrayBuffer();
+    await writeFile('u/'+file.name, b64(buf), null);
+    return {ok:true};
+  },
+  changePassword:()=>{}
 };
 
-
+/* =========================================================
+   启动
+   ========================================================= */
 (function boot(){
-  $('#pairCard').classList.add('hide');
-  $('#loginCard').classList.remove('hide');
-  // 已授权设备：预填账户，只需输密码（密码永不落盘，界面每次用密码解密）
-  var ck=localStorage.getItem('s1c')||'';
-  if(ck){
-    try{
-      var el=document.getElementById('inUser');
-      if(el)el.value=localStorage.getItem('s1n')||'';
-      var tip=document.getElementById('loginMsg');
-      if(tip){tip.style.color='var(--sub)';tip.textContent='本设备已授权，输入密码即可进入';}
-    }catch(e){}
-  }
-  var v=document.getElementById('ver');
-  if(v)v.textContent='v'+UI_VER;
+  $('#ver').textContent=VER;
+  $('#btnLogin').onclick=doLogin;
+  $('#btnCancel').onclick=()=>{ $('#vPair').classList.add('hide'); $('#vLogin').classList.remove('hide'); };
+  ['#inUser','#inPass'].forEach(s=>{
+    const el=$(s);
+    if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+  });
+  const saved=localStorage.getItem('k3');
+  if(saved) $('#inUser').value=saved;
 })();
 </script>
 </body>
