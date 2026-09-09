@@ -1,6 +1,0 @@
-{
-  "box_pub": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE38Hhqn2Q6Rv86QfwEw2dSdl/HPm988GwMt/zbCQUCqD6rMraSbG5pORhDDoSC6+vpYFkwwXcYG7lTOtyqPkqLw==",
-  "alg": "ECIES-P256-AESGCM",
-  "hkdf_salt": "u-01",
-  "info": "i-01"
-}
