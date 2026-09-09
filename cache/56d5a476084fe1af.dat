@@ -1,1 +1,1 @@
-{"locked": true, "time": "2026-09-10 00:17:17", "degraded": true, "info": null}
+{"locked": true, "time": "2026-09-10 00:43:54", "degraded": true, "info": null, "locks": {"data": true, "tmp": true, "backup": true}}
