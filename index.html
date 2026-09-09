@@ -83,7 +83,7 @@ async function obfAsset(name){
 const DIR_UP='uploads';
 
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"JWF5hiMFDevOJ7WGfU3/UC10b2s=","nonce":"2lRMGCgy1HNcRuKj","ct":"qQ/c3Fe1YrQ/LcdbCZA2A9WTwLN19OvWt72xoyLNaU4KXOAGAAZJ89kwFPu5SIVmEMFbVJ/Y9psg7U1FLNsXA7JZAmIxLhwE4AFqE32R3cc54VDrbaaz1MqpzXSR5CNl9qX6xVaChuD41MPvuA=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"ZsYSOegPlWifstK5tEQ/sC10b2s=","nonce":"5JhvEiv13RUzvePZ","ct":"LyIbqpTsFK+DFuawjgHLtxgTLhzKWFlFHTlcS+Sns8QmtBIw9ms3AaeUEp8JEWBV7ADF/G9dtvZFjbZEZZPXeQ8vii9OGM3MvODSdfGYfPXCVhAZYshGKhdFPrFauepxNQJPXqa8HOURY8UOOg=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -228,6 +228,10 @@ async function poll(){
           ? await eciesDecrypt(JSON.parse(r.content), keys.encPriv,'e-01','i-01')
           : JSON.parse(r.content);
       }catch(e){ res={ok:false,msg:'解密失败'}; }
+      // 服务端判定 cookie 无效/过期/吊销 → 清会话并回到登录页
+      if(res.need_cookie||/Cookie 校验失败|尚未签发|已吊销|已过期/.test(res.msg||'')){
+        clearSession(); return;
+      }
       log((res.ok?'✓ ':'✗ ')+(res.msg||'').slice(0,90));
       if(res.url)log('   下载：'+res.url);
       PENDING=PENDING.filter(x=>x!==id);
@@ -240,6 +244,18 @@ async function poll(){
       }
     }
   }catch(e){ log('轮询：'+e.message); }
+}
+
+
+function clearSession(){
+  localStorage.removeItem('s1c'); localStorage.removeItem('s1u');
+  COOKIE=''; READY=false;
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+  if(pairTimer){clearInterval(pairTimer);pairTimer=null;}
+  $('#uiHost').innerHTML='';
+  $('#pairCard').classList.add('hide');
+  $('#loginCard').classList.remove('hide');
+  log('会话已失效，请重新登录');
 }
 
 /* ---- 解密与注入 ---- */
@@ -279,6 +295,35 @@ function injectUI(html,css,js){
   }
 }
 
+
+/* ---- 会话持久化：刷新后免登录（参考主流网盘的 session 恢复）----
+   界面用 cookie 派生的密钥加密后缓存；密码绝不落盘。
+   真正的门禁仍在服务端：cookie 失效或被吊销时会被踢回登录页。 */
+async function uiKey(ck){
+  const raw=await crypto.subtle.importKey('raw',enc('s1u'+ck),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:enc('s1u'),iterations:50000},
+    raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function cacheUI(res){
+  const ck=localStorage.getItem('s1c')||'';
+  if(!ck)return;                       // 未激活（无 cookie）时不缓存
+  try{
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const data=enc(JSON.stringify({html:res.html,css:res.css,js:res.js}));
+    const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await uiKey(ck),data);
+    localStorage.setItem('s1u',JSON.stringify({iv:b64(iv),ct:b64(new Uint8Array(ct))}));
+  }catch(e){}
+}
+async function restoreUI(){
+  const ck=localStorage.getItem('s1c')||'', cache=localStorage.getItem('s1u');
+  if(!ck||!cache)return false;
+  try{
+    const o=JSON.parse(cache);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(o.iv)},await uiKey(ck),unb64(o.ct));
+    return JSON.parse(dec(pt));
+  }catch(e){ return false; }
+}
+
 /* ---- 配对 ---- */
 function fmtCode(fp){const s=(fp||'').slice(0,12).toUpperCase();return s.match(/.{1,4}/g).join('-');}
 async function requestPair(){
@@ -287,7 +332,8 @@ async function requestPair(){
     enc_pub:keys.encPub,sig_pub:keys.sigPub,
     account:PENDACC,password:PENDPW});
   $('#pairCard').classList.remove('hide');
-  $('#devCode').textContent=fmtCode(DEVFP);
+  // 授权码由服务端随机下发（与设备指纹无关），未取到时回退到指纹
+  $('#devCode').textContent=fmtCode((r&&r.code)||DEVFP);
   if(pairTimer)clearInterval(pairTimer);
   pairTimer=setInterval(()=>cmd('pair',{op:'status',device_fp:DEVFP}),5000);
   log('标识码 '+fmtCode(DEVFP));
@@ -312,7 +358,24 @@ async function onPair(res){
 async function ensureKeys(bundle){
   if(bundle&&bundle.encPriv){ keys=bundle; return; }
   const saved=localStorage.getItem('s1k');
-  if(saved){ try{ keys=JSON.parse(saved); return; }catch(e){} }
+  if(saved){
+    try{
+      keys=JSON.parse(saved);
+      // 旧会话可能只存了私钥：用私钥反推公钥，保证后续派生指纹不失败
+      if(keys&&keys.encPriv&&!keys.encPub){
+        const e=await crypto.subtle.importKey('jwk',keys.encPriv,{name:'ECDH',namedCurve:'P-256'},true,[]);
+        keys.encPub=b64(await crypto.subtle.exportKey('spki',e.publicKey));
+      }
+      if(keys&&keys.sigPriv&&!keys.sigPub){
+        const sg=await crypto.subtle.importKey('jwk',keys.sigPriv,
+          {name:'ECDSA',namedCurve:'P-256'},true,['sign']);
+        keys.sigPub=b64(await crypto.subtle.exportKey('spki',sg.publicKey));
+      }
+      if(keys&&keys.encPub&&keys.sigPub){
+        localStorage.setItem('s1k',JSON.stringify(keys)); return;
+      }
+    }catch(e){}
+  }
   const e=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
   const s=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   keys={encPriv:await crypto.subtle.exportKey('jwk',e.privateKey),
@@ -372,6 +435,7 @@ $('#btnLogin').onclick=async()=>{
   await ensurePubUploaded();
   DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
   injectUI(res.html, res.css, res.js);
+  await cacheUI(res);
   COOKIE=localStorage.getItem('s1c')||'';
   PENDPW=pw; PENDACC=acc;
   await requestPair();
@@ -383,7 +447,23 @@ $('#btnLogin').onclick=async()=>{
 
 (function boot(){
   $('#pairCard').classList.add('hide');
-  $('#loginCard').classList.remove('hide');
+  // 已有会话 → 静默恢复，无需重新输密码；服务端会复核 cookie，失效自动踢回
+  (async()=>{
+    const ui=await restoreUI();
+    if(!ui){ $('#loginCard').classList.remove('hide'); return; }
+    try{
+      const boxR=await readFile(await obfAsset('keys/box_public.json'));
+      if(boxR.content)boxPub=JSON.parse(boxR.content).box_pub;
+    }catch(e){}
+    await ensureKeys(null);
+    DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
+    injectUI(ui.html,ui.css,ui.js);
+    COOKIE=localStorage.getItem('s1c')||'';
+    if(pollTimer)clearInterval(pollTimer);
+    pollTimer=setInterval(poll,3000);
+    poll();
+    log('已恢复上次会话');
+  })();
 })();
 </script>
 </body>
