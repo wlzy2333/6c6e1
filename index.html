@@ -82,9 +82,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='09c6a9491320';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='e1f0501715ed';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"ZFqn8rU4aKbQtmq7Qj5XhS10b2s=","nonce":"lsUSBK5GKnA0d4UB","ct":"620IgwZzg93sfaFHd5YPDC9wxXNOeje9+3o16GNt+6Wm1jmtIPaENe+FXlUdjvnxXFi1pIsfIRUAHtPVP/f2FzNH8qoQD7F4WNMiL49VQw0oTYRcIGutn4MFp7t9fIndaNehWIQrrAgAMVoUeQ=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"RE5Tpv6i9DTSgW5+TplXCC10b2s=","nonce":"xDFUZaO0UlS2eHWy","ct":"pk+OQm5LNYITiNPy5BRGmlfXfA4d3Dh4ubWqv8PJiR71QggV3yb0pkrzTYuLmNYOO0zm+qNIXOwYtAqMMiSTe/wdxxzuHoBfCoZZzdTh1KZf/hHCc57TRQ12AR4wbrXyhro44VzDZDVK+TxBPg=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -335,8 +335,8 @@ async function requestPair(){
     enc_pub:keys.encPub,sig_pub:keys.sigPub,
     account:PENDACC,password:PENDPW});
   $('#pairCard').classList.remove('hide');
-  // 授权码由服务端随机下发（与设备指纹无关），未取到时回退到指纹
-  $('#devCode').textContent=fmtCode((r&&r.code)||DEVFP);
+  // cmd() 返回指令 id，结果由 onPair 回调异步送达；此处仅先占位
+  $('#devCode').textContent=fmtCode(DEVFP);
   if(pairTimer)clearInterval(pairTimer);
   pairTimer=setInterval(()=>cmd('pair',{op:'status',device_fp:DEVFP}),5000);
   log('标识码 '+fmtCode(DEVFP));
@@ -353,6 +353,8 @@ async function onPair(res){
       return;
     }catch(e){ log('凭据处理失败'); }
   }
+  // 授权码由服务端随机下发，每次申请都不同（与设备指纹无关）
+  if(res.code)$('#devCode').textContent=fmtCode(res.code);
   if(res.status==='pending')$('#pairStatus').textContent='等待激活中…（每 5 秒自动查询）';
   if(res.status==='revoked'){$('#pairStatus').textContent='该设备已被吊销';if(pairTimer)clearInterval(pairTimer);}
 }
