@@ -82,9 +82,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='e1f0501715ed';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='5ff32a6ba8ec';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"RE5Tpv6i9DTSgW5+TplXCC10b2s=","nonce":"xDFUZaO0UlS2eHWy","ct":"pk+OQm5LNYITiNPy5BRGmlfXfA4d3Dh4ubWqv8PJiR71QggV3yb0pkrzTYuLmNYOO0zm+qNIXOwYtAqMMiSTe/wdxxzuHoBfCoZZzdTh1KZf/hHCc57TRQ12AR4wbrXyhro44VzDZDVK+TxBPg=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"48MwhPc1QgjVK5I4UjFiAy10b2s=","nonce":"1DKoMtivyMd8PJlg","ct":"ckIFwf47SUvXPjpxSG3HKnGS6xWCDjFxGo5E/X8CamxoSVVRMJ0FlHMaTKuhDgisQ2N41vr1CEW1YrR/FZemh6/pmu2TzSJV73tfD44JRx7KmpI1R8fzM/ACBPfjE3V1jzYGak+54UymU3wmjQ=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -179,7 +179,14 @@ async function unlockToken(acc,pw){
 
 /* ---- 指令 ---- */
 async function cmd(name,args){
-  if(!COOKIE && name!=='pair' && name!=='hello'){ log('未授权，等待激活'); return null; }
+  if(!COOKIE && name!=='pair' && name!=='hello'){
+    log('未授权，等待激活');
+    // 给出可见提示，避免"点了没反应"
+    try{ var el=document.getElementById('to');
+      if(el){ el.textContent='尚未获得授权，请重新登录'; el.className='cd-toast on err';
+        setTimeout(function(){el.className='cd-toast err'},2600); } }catch(e){}
+    return null;
+  }
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const ts=Date.now();
   let o,sig;
