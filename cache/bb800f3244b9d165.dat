@@ -1,15 +1,1 @@
-{
-  "ok": true,
-  "status": "active",
-  "fp": "74e11380c350bb19dd73f781e430693a",
-  "code": "605614E3A31F",
-  "cookie_env": {
-    "v": 1,
-    "alg": "ECIES-P256-AESGCM",
-    "eph": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQZ/ydZwySy3OB0SYhWrDbtOD+PlwEmoYf6fGOPe+i+jOXDDowY8TxuG4rBOq6yUOvXlhaK5Y72a4U8INk1s0TA==",
-    "nonce": "Db+g6A7NrbdfT6Dv",
-    "ct": "qsb57u6QUWHLS92+7pA0QOLDPKb2jGs7q46Xy9JYBPJFAgRWrNaPd1A2x7aLrXNnQhWXHviSEgAMl4JZXz6r/PyLOm/oOuwLMQ=="
-  },
-  "account": "wlzy2333",
-  "msg": "已激活"
-}
+{"v":1,"alg":"ECIES-P256-AESGCM","eph":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE3+dt/TzinE8Cse7PL8cvRNDaYBoPeaAhz0VLeyFBx3cQIvwXRt08jlRvf/mfj6bQ+Oz7C+3HGYziuRLlbgWe3g==","nonce":"4T/XxTfpa7K9x04J","ct":"eIpm3qn5wCeudlNpMLMM9VzmXD8Yjvhi/i9WoecTJ81yJeK8iVuMp6sgYdHDWk9FErIHaIkvkTUwA6VhbXHQV/+Maz0IHcu/Tw=="}
