@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>登录</title>
+<style>
+:root{--bg:#0f1420;--card:#1a2234;--card2:#212b40;--line:#2b3648;--txt:#e6ecf7;
+--sub:#93a1bb;--acc:#4f8cff;--acc2:#38d39f;--danger:#ff6b6b;--warn:#ffb648}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#1c2740,#0f1420 60%);color:var(--txt);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+min-height:100vh;padding:16px;font-size:14px}
+.wrap{max-width:1060px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h1{font-size:20px;margin:0 0 4px}h1 span{color:var(--acc)}
+.sub{color:var(--sub);font-size:13px;margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--sub);margin:10px 0 5px}
+input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none}
+input:focus{border-color:var(--acc)}
+button{cursor:pointer;border:none;border-radius:8px;padding:9px 15px;background:var(--acc);color:#fff;font-size:14px;font-family:inherit}
+button:hover{filter:brightness(1.1)}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+button.sm{padding:6px 11px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{font-size:12px;color:var(--sub);background:var(--bg);border:1px solid var(--line);padding:5px 11px;border-radius:20px}
+#log{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:12px;
+max-height:170px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--sub);white-space:pre-wrap}
+.hide{display:none}
+.note{background:var(--card2);border-left:3px solid var(--warn);padding:10px 12px;border-radius:6px;
+font-size:12px;color:var(--sub);margin:10px 0}
+.fp{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--sub);word-break:break-all}
+.ui-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.ui-spacer{flex:1}
+.mini{max-width:420px;margin:8vh auto 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card mini hide" id="loginCard">
+  <label>账户</label><input id="inUser" placeholder="账户名" autocomplete="username">
+  <label>密码</label><input id="inPass" type="password" placeholder="密码" autocomplete="current-password">
+  <div class="row" style="margin-top:12px"><button id="btnLogin" style="flex:1">登 录</button></div>
+  <div id="loginMsg" class="fp" style="margin-top:10px;color:var(--danger);min-height:16px"></div>
+</div>
+
+<div class="card hide" id="pairCard">
+  <b style="font-size:15px">授权</b>
+  <div class="note">请使用授权码激活</div>
+  <div style="text-align:center;margin:14px 0">
+    <div id="devCode" style="font-size:26px;letter-spacing:2px;font-family:ui-monospace,Menlo,Consolas,monospace;
+      color:var(--acc);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px">-</div>
+    <div id="pairStatus" class="fp" style="margin-top:10px">等待确认…</div>
+  </div>
+</div>
+
+<div id="uiHost"></div>
+
+
+</div>
+
+<script>
+/* ============ 内核 ============ */
+const $ = s => document.querySelector(s);
+const enc = s => new TextEncoder().encode(s);
+const dec = b => new TextDecoder().decode(b);
+function b64(buf){let s='',b=new Uint8Array(buf);for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
+function unb64(str){const s=atob(str),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a.buffer;}
+function toHex(b){return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+/* ---- 路径映射 ---- */
+const OBF_SALT='p-01:';
+async function obf(name){
+  const h=toHex(await crypto.subtle.digest('SHA-256',enc(OBF_SALT+name))).slice(0,16);
+  return 'cache/'+h+'.dat';
+}
+async function obfAsset(name){
+  const h=toHex(await crypto.subtle.digest('SHA-256',enc(OBF_SALT+name))).slice(0,16);
+  return 'assets/'+h+'.bin';
+}
+const DIR_UP='uploads';
+
+const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'main'};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"L+VW7wmFjW0ypZBmT9nTaC10b2s=","nonce":"tXEEi2QlKVLDOzbk","ct":"OuU1r+xBtjqz2uGZXlsmDfH6T/EP28Kppe3tj10S6iO65uiXNmHCemMQ4ewcipaAg0Mltir6dV9zKHVuOenFcP944vsrAed6THXTWUTWMoGnPd5hexjAaph32Av7yqmdojIicZZ4L0ByTMK03g=="};
+let keys=null, boxPub=null, COOKIE='', DEVFP=null;
+let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
+let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
+
+function log(m){const l=$('#log');if(!l)return;l.textContent+='\n'+m;l.scrollTop=l.scrollHeight;}
+
+/* ---- 传输 ---- */
+function gh(path,opt={}){
+  const url='https://api.github.com/repos/'+cfg.repo+'/contents/'+path+(path.includes('?')?'&':'?')+'ref='+cfg.branch;
+  return fetch(url,Object.assign({},opt,{headers:Object.assign({
+    'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'},opt.headers||{})}));
+}
+async function readFile(p){
+  const r=await gh(p);
+  if(r.status===404)return{content:null,sha:null};
+  if(!r.ok)throw new Error('读取失败 '+r.status);
+  const d=await r.json();
+  return{content:d.content?dec(unb64(d.content.replace(/\n/g,''))):'',sha:d.sha};
+}
+// 随机提交身份：作者名 3-5 位，邮箱用非 GitHub 域名 → 绝不关联真实账号
+function rndAuth(){
+  const cs='abcdefghijklmnopqrstuvwxyz0123456789';
+  const a=new Uint8Array(5); crypto.getRandomValues(a);
+  const n=Array.from(a).map(b=>cs[b%cs.length]).join('').slice(0,3+(a[0]%3));
+  return {name:n, email:n+'@local'};
+}
+
+// 提交信息：20 位内随机乱码，无语义无固定指纹
+function rndMsg(){
+  const a=new Uint8Array(10); crypto.getRandomValues(a);
+  return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20);
+}
+
+async function writeFile(p,content,msg,sha){
+  const AUTH=rndAuth();
+  const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+p,{method:'PUT',
+    headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+    body:JSON.stringify({message:msg,content:b64(enc(content)),
+      author:AUTH,committer:AUTH,...(sha?{sha}:{})})});
+  if(!r.ok)throw new Error('写入失败 '+r.status);
+  return r.json();
+}
+
+/* ---- 加密基元 ---- */
+async function importECDHPriv(jwk){return crypto.subtle.importKey('jwk',jwk,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);}
+async function deriveAES(shared,salt,info){
+  const hk=await crypto.subtle.importKey('raw',shared,'HKDF',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:enc(salt),info:enc(info)},
+    hk,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function eciesEncrypt(pubB64,obj,salt,info){
+  const pub=await crypto.subtle.importKey('spki',unb64(pubB64),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const eph=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:pub},eph.privateKey,256);
+  const aes=await deriveAES(shared,salt,info);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},aes,enc(JSON.stringify(obj)));
+  return {eph:b64(await crypto.subtle.exportKey('spki',eph.publicKey)),nonce:b64(iv),ct:b64(ct)};
+}
+async function eciesDecrypt(env,jwk,salt,info){
+  const eph=await crypto.subtle.importKey('spki',unb64(env.eph),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const priv=await importECDHPriv(jwk);
+  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:eph},priv,256);
+  const aes=await deriveAES(shared,salt,info);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.nonce)},aes,unb64(env.ct));
+  return JSON.parse(dec(pt));
+}
+async function signCmd(o){
+  if(!keys||!keys.sigPriv)return null;
+  const body = o.v===2 ? {id:o.id,ts:o.ts,eph:o.eph,nonce:o.nonce,ct:o.ct}
+                       : {id:o.id,ts:o.ts,cmd:o.cmd,args:o.args};
+  const k=await crypto.subtle.importKey('jwk',keys.sigPriv,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+  return b64(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},k,enc(JSON.stringify(body))));
+}
+async function pbkdf2(pw,saltB64,iters,acc){
+  // 材料 = 账户 + \0 + 密码
+  const material=(acc||'')+'\u0000'+pw;
+  const km=await crypto.subtle.importKey('raw',enc(material),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:unb64(saltB64),iterations:iters,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+
+/* ---- 凭据 ---- */
+async function unlockToken(acc,pw){
+  if(!TOKEN_ENV) return '';
+  try{
+    const aes=await pbkdf2(pw,TOKEN_ENV.salt,TOKEN_ENV.iters||600000,acc);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(TOKEN_ENV.nonce)},aes,unb64(TOKEN_ENV.ct));
+    return dec(pt);
+  }catch(e){ return ''; }
+}
+
+/* ---- 指令 ---- */
+async function cmd(name,args){
+  if(!COOKIE && name!=='pair' && name!=='hello'){ log('未授权，等待激活'); return null; }
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const ts=Date.now();
+  let o,sig;
+  if(boxPub){
+    const env=await eciesEncrypt(boxPub,{cmd:name,args:args||{},...(COOKIE?{cookie:COOKIE}:{})},'u-01','i-01');
+    o={v:2,id,ts,...env};
+    sig=await signCmd(o); if(sig)o.sig=sig;
+    log('→ '+name+' [加密'+(sig?'+签名':'')+']');
+  }else{
+    const a=args||{};
+    if(a.password||a.new||a.value){ log('✗ 已阻止发送'); return null; }
+    o={id,ts,cmd:name,args:a};
+    sig=await signCmd(o); if(sig)o.sig=sig;
+    log('→ '+name+(sig?' [签名]':' [明文]'));
+  }
+  const cur=await readFile(await obf('commands.jsonl'));
+  await writeFile(await obf('commands.jsonl'),(cur.content||'')+JSON.stringify(o)+'\n',rndMsg(),cur.sha);
+  PENDING.push(id);
+  (window.__PN=window.__PN||{})[id]=name;   // 结果回调时用它标注指令名
+  return id;
+}
+
+async function uploadToInbox(f){
+  await writeFile(DIR_UP+'/'+f.name, b64(new Uint8Array(await f.arrayBuffer())), rndMsg(), null);
+  log('已就绪：'+f.name);
+}
+
+/* ---- 轮询 ---- */
+async function poll(){
+  if(!cfg.repo||!cfg.token)return;
+  try{
+    const st=await readFile(await obf('state.json'));
+    if(st.content){
+      try{
+        const d = (JSON.parse(st.content).v===1 && keys)
+          ? await eciesDecrypt(JSON.parse(st.content), keys.encPriv,'e-01','i-01')
+          : JSON.parse(st.content);
+        stateCbs.forEach(f=>f(d));
+      }catch(e){/* 解密失败跳过 */}
+    }
+    for(const id of PENDING.slice()){
+      const r=await readFile(await obf('results/'+id));
+      if(!r.content)continue;
+      let res;
+      try{
+        res = (JSON.parse(r.content).v===1 && keys)
+          ? await eciesDecrypt(JSON.parse(r.content), keys.encPriv,'e-01','i-01')
+          : JSON.parse(r.content);
+      }catch(e){ res={ok:false,msg:'解密失败'}; }
+      log((res.ok?'✓ ':'✗ ')+(res.msg||'').slice(0,90));
+      if(res.url)log('   下载：'+res.url);
+      PENDING=PENDING.filter(x=>x!==id);
+      res.__cmd=(window.__PN||{})[id]||'';   // 供界面精确识别
+      if(res.status)await onPair(res);
+      resultCbs.forEach(f=>f(res));
+      if(res.ok&&!res.status&&!res.data){
+        const h=window.__REFRESH_HOOK;
+        setTimeout(()=>{ h?h():(window.APP&&window.APP.cmd('list',{root:'data',path:''})); },300);
+      }
+    }
+  }catch(e){ log('轮询：'+e.message); }
+}
+
+/* ---- 解密与注入 ---- */
+async function loadUIPack(password,account){
+  let r;
+  try{
+    r=await readFile(await obfAsset('ui/app.enc'));
+  }catch(e){
+    return {err:'连接失败：'+e.message};
+  }
+  if(!r.content)return {err:'资源暂不可用'};
+  let pack;
+  try{ pack=JSON.parse(r.content); }catch(e){ return {err:'资源格式错误'}; }
+  try{
+    const aes=await pbkdf2(password,pack.salt,pack.iters||600000,account);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(pack.nonce)},aes,unb64(pack.ct));
+    // 明文是 {"html":...,"bundle":...} 的 JSON，必须解析后取字段
+    const obj=JSON.parse(dec(pt));
+    return {html:obj.html, css:obj.css||'', js:obj.js||'',
+            iters:pack.iters, bundle:obj.bundle||null};
+  }catch(e){ return {err:'账户或密码错误'}; }
+}
+
+function injectUI(html,css,js){
+  const host=$('#uiHost');
+  // 样式来自包内 css 字段；脚本来自 js 字段，不经 DOM 往返避免被解析器改写
+  if(css){
+    const st=document.createElement('style');
+    st.textContent=css;
+    document.head.appendChild(st);
+  }
+  host.innerHTML=(html||'').replace(/<script>[\s\S]*?<\/script>/g,'');
+  if(js){
+    const sc=document.createElement('script');
+    sc.textContent=js;
+    document.body.appendChild(sc);
+  }
+}
+
+/* ---- 配对 ---- */
+function fmtCode(fp){const s=(fp||'').slice(0,12).toUpperCase();return s.match(/.{1,4}/g).join('-');}
+async function requestPair(){
+  const r=await cmd('pair',{op:'request',device_fp:DEVFP,
+    device_id:navigator.userAgent.slice(0,40),
+    enc_pub:keys.encPub,sig_pub:keys.sigPub,
+    account:PENDACC,password:PENDPW});
+  $('#pairCard').classList.remove('hide');
+  $('#devCode').textContent=fmtCode(DEVFP);
+  if(pairTimer)clearInterval(pairTimer);
+  pairTimer=setInterval(()=>cmd('pair',{op:'status',device_fp:DEVFP}),5000);
+  log('标识码 '+fmtCode(DEVFP));
+}
+async function onPair(res){
+  if(res.status==='active'&&res.cookie_env){
+    try{
+      COOKIE=(await eciesDecrypt(res.cookie_env,keys.encPriv,'d-01','i-01')).cookie;
+      localStorage.setItem('s1c',COOKIE);
+      if(pairTimer)clearInterval(pairTimer);
+      $('#pairCard').classList.add('hide');
+      log('已激活');
+      READY=true; readyCbs.forEach(f=>f());
+      return;
+    }catch(e){ log('凭据处理失败'); }
+  }
+  if(res.status==='pending')$('#pairStatus').textContent='等待激活中…（每 5 秒自动查询）';
+  if(res.status==='revoked'){$('#pairStatus').textContent='该设备已被吊销';if(pairTimer)clearInterval(pairTimer);}
+}
+
+/* ---- 本地凭据 ---- */
+async function ensureKeys(bundle){
+  if(bundle&&bundle.encPriv){ keys=bundle; return; }
+  const saved=localStorage.getItem('s1k');
+  if(saved){ try{ keys=JSON.parse(saved); return; }catch(e){} }
+  const e=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
+  const s=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  keys={encPriv:await crypto.subtle.exportKey('jwk',e.privateKey),
+        sigPriv:await crypto.subtle.exportKey('jwk',s.privateKey),
+        encPub:b64(await crypto.subtle.exportKey('spki',e.publicKey)),
+        sigPub:b64(await crypto.subtle.exportKey('spki',s.publicKey))};
+  localStorage.setItem('s1k',JSON.stringify(keys));
+}
+async function ensurePubUploaded(){
+  const cur=await readFile(await obf('keys/public.json'));
+  if(cur.content){
+    try{const d=JSON.parse(cur.content);
+      if(d.enc_pub===keys.encPub&&d.sig_pub===keys.sigPub)return;}catch(e){}
+  }
+  await writeFile(await obf('keys/public.json'),JSON.stringify({enc_pub:keys.encPub,sig_pub:keys.sigPub,
+    created:new Date().toISOString()},null,2),'publish device public keys',cur.sha);
+  log('正在连接');
+}
+
+/* ---- 接口 ---- */
+window.APP={
+  cmd, log, uploadToInbox,
+  get cfg(){return cfg;}, get keys(){return keys;}, get cookie(){return COOKIE;},
+  onState:f=>stateCbs.push(f), onResult:f=>resultCbs.push(f),
+  onReady:f=>{readyCbs.push(f); if(READY)f();},
+  changePassword:async newpw=>{
+    log('已提交');
+    await cmd('chpasswd',{new:newpw});
+  }
+};
+
+/* ---- 登录 ---- */
+$('#btnLogin').onclick=async()=>{
+  const pw=$('#inPass').value, acc=$('#inUser').value.trim();
+  if(!acc){$('#loginMsg').textContent='请输入账户名';return;}
+  if(!pw){$('#loginMsg').textContent='请输入密码';return;}
+  $('#loginMsg').textContent='';
+  cfg.token=await unlockToken(acc,pw);
+  if(!cfg.token){ $('#loginMsg').textContent='账户或密码错误'; return; }
+  try{
+    const boxR=await readFile(await obfAsset('keys/box_public.json'));
+    if(boxR.content)boxPub=JSON.parse(boxR.content).box_pub;
+  }catch(e){}
+  let res;
+  try{
+    res=await loadUIPack(pw,acc);
+  }catch(e){
+    $('#loginMsg').textContent='登录出错：'+e.message;
+    log('✗ 登录出错：'+e.message);
+    return;
+  }
+  if(res.err){ $('#loginMsg').textContent=res.err; log('✗ '+res.err); return; }
+  $('#inPass').value='';
+  $('#loginCard').classList.add('hide');
+  log('正在初始化');
+  await ensureKeys(res.bundle);
+  await ensurePubUploaded();
+  DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
+  injectUI(res.html, res.css, res.js);
+  COOKIE=localStorage.getItem('s1c')||'';
+  PENDPW=pw; PENDACC=acc;
+  await requestPair();
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(poll,3000);
+  poll();
+};
+
+
+(function boot(){
+  $('#pairCard').classList.add('hide');
+  $('#loginCard').classList.remove('hide');
+})();
+</script>
+</body>
+</html>
