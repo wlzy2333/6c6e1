@@ -83,7 +83,7 @@ async function obfAsset(name){
 const DIR_UP='uploads';
 
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'main'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"VqichN0TPbYv2F3iC2rtuC10b2s=","nonce":"qRIk0geB3RlAPIQw","ct":"28keNsY5Dg+B7Mbk6pyFz9x0dQ4GClo2bgREyITY5E80Fkr5iowDNY5YcaSrCNQIHgHLTDJiuRcUeOJKvcYHLpClKepRAT4gfELw+MAb70VUH+Xsb9C2NXYsd4v5lkYjgwzF6b73jLliJaaqUg=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"A1QCxDKH/k5mIts65ZZl3S10b2s=","nonce":"2aAtLSVo5U0v8gwR","ct":"BcRSOtN2ZzasW4kIO3VdDLq725J+jGJSciHmT5/4tSARpAtUhibCrZBInNxDRxHSHr2TAakMj7BVRcDPd+KGi2WL+Ti4hhg8EX73CP8M+ZLGSAnbMNWRRu/6IT/UXF7TPE3E4/tD+duaMNRLfA=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -181,6 +181,7 @@ async function cmd(name,args){
   const cur=await readFile(await obf('commands.jsonl'));
   await writeFile(await obf('commands.jsonl'),(cur.content||'')+JSON.stringify(o)+'\n','chore: sync',cur.sha);
   PENDING.push(id);
+  (window.__PN=window.__PN||{})[id]=name;   // 结果回调时用它标注指令名
   return id;
 }
 
@@ -214,9 +215,13 @@ async function poll(){
       log((res.ok?'✓ ':'✗ ')+(res.msg||'').slice(0,90));
       if(res.url)log('   下载：'+res.url);
       PENDING=PENDING.filter(x=>x!==id);
+      res.__cmd=(window.__PN||{})[id]||'';   // 供界面精确识别
       if(res.status)await onPair(res);
       resultCbs.forEach(f=>f(res));
-      if(res.ok&&!res.status&&!res.data)setTimeout(()=>cmd('list',{root:'data',path:''}),300);
+      if(res.ok&&!res.status&&!res.data){
+        const h=window.__REFRESH_HOOK;
+        setTimeout(()=>{ h?h():(window.APP&&window.APP.cmd('list',{root:'data',path:''})); },300);
+      }
     }
   }catch(e){ log('轮询：'+e.message); }
 }
