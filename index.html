@@ -82,9 +82,9 @@ async function obfAsset(name){
 }
 const DIR_UP='uploads';
 
-const UI_VER='5ff32a6ba8ec';   // 界面版本号：部署新版后旧缓存自动失效
+const UI_VER='2f2bdbaaba1c';   // 界面版本号：部署新版后旧缓存自动失效
 const cfg={repo:'wlzy2333/6c6e1',token:'',branch:'bus'};
-const TOKEN_ENV={"v":1,"iters":600000,"salt":"48MwhPc1QgjVK5I4UjFiAy10b2s=","nonce":"1DKoMtivyMd8PJlg","ct":"ckIFwf47SUvXPjpxSG3HKnGS6xWCDjFxGo5E/X8CamxoSVVRMJ0FlHMaTKuhDgisQ2N41vr1CEW1YrR/FZemh6/pmu2TzSJV73tfD44JRx7KmpI1R8fzM/ACBPfjE3V1jzYGak+54UymU3wmjQ=="};
+const TOKEN_ENV={"v":1,"iters":600000,"salt":"FtvNYyropME+hE8TiT5zqS10b2s=","nonce":"RJlf0TbBOtfDE4AM","ct":"W0Ru0Db7RQIDrcHBwt6MoAdmdPX7ZzMW33l/OOTn0Rqv/Z0ZpqvktQX4ALW641j32gs+Icuxq1JHHsIvxF2LTBH2t04LZlkYViFiXThw30Zh7qZMREGq2F/h9AWEjpg6EktsMyVAPvGjKBH8JQ=="};
 let keys=null, boxPub=null, COOKIE='', DEVFP=null;
 let PENDPW=null, PENDACC=null, pairTimer=null, pollTimer=null;
 let stateCbs=[], resultCbs=[], readyCbs=[], READY=false, PENDING=[];
@@ -334,6 +334,37 @@ async function restoreUI(){
   }catch(e){ return false; }
 }
 
+
+/* ---- 页面内输入：替代 prompt（手机浏览器常不弹或体验差）---- */
+function ask(title, def, isPw){
+  return new Promise(function(res){
+    var w=document.createElement('div');
+    w.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;'+
+      'display:flex;align-items:center;justify-content:center;padding:20px';
+    w.innerHTML='<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'+
+      'padding:20px;max-width:340px;width:100%">'+
+      '<div style="font-size:15px;margin-bottom:12px">'+String(title||'').replace(/[<>&]/g,'')+'</div>'+
+      '<input id="__askIn" type="'+(isPw?'password':'text')+'" value="'+String(def||'').replace(/"/g,'&quot;')+'" '+
+      'style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);'+
+      'color:var(--txt);border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;outline:none">'+
+      '<div style="display:flex;gap:8px;margin-top:14px">'+
+      '<button id="__askOk" style="flex:1;background:var(--acc);border:0;color:#fff;'+
+      'border-radius:9px;padding:10px;font:inherit;font-size:14px;cursor:pointer">确定</button>'+
+      '<button id="__askNo" style="flex:1;background:var(--card2);border:1px solid var(--line);'+
+      'color:var(--txt);border-radius:9px;padding:10px;font:inherit;font-size:14px;cursor:pointer">取消</button>'+
+      '</div></div>';
+    document.body.appendChild(w);
+    var inp=w.querySelector('#__askIn');
+    setTimeout(function(){inp.focus();},60);
+    function done(v){ w.remove(); res(v); }
+    w.querySelector('#__askOk').onclick=function(){ done(inp.value); };
+    w.querySelector('#__askNo').onclick=function(){ done(null); };
+    inp.onkeydown=function(e){ if(e.key==='Enter')done(inp.value); if(e.key==='Escape')done(null); };
+    w.onclick=function(e){ if(e.target===w)done(null); };
+  });
+}
+window.__ask = ask;
+
 /* ---- 配对 ---- */
 function fmtCode(fp){const s=(fp||'').slice(0,12).toUpperCase();return s.match(/.{1,4}/g).join('-');}
 async function requestPair(){
@@ -469,8 +500,15 @@ $('#btnLogin').onclick=async()=>{
     }catch(e){}
     await ensureKeys(null);
     DEVFP=toHex(await crypto.subtle.digest('SHA-256',unb64(keys.sigPub))).slice(0,32);
-    injectUI(ui.html,ui.css,ui.js);
     COOKIE=localStorage.getItem('s1c')||'';
+    // 界面缓存还在但 cookie 丢了 → 所有指令都会失败，必须重新登录补发 cookie
+    if(!COOKIE){
+      localStorage.removeItem('s1u');
+      $('#loginCard').classList.remove('hide');
+      log('凭据已失效，请重新登录');
+      return;
+    }
+    injectUI(ui.html,ui.css,ui.js);
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=setInterval(poll,3000);
     poll();
